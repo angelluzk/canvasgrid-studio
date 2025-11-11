@@ -1,6 +1,6 @@
 # CanvasGrid Studio
 
-Bem-vindo ao `canvasgrid-studio`, um estúdio de design web 2-em-1 focado em aprendizado e prática de desenvolvimento front-end moderno. Este projeto é construído iterativamente, focando em código limpo, modular e sem dependências de build, ideal para publicação no GitHub Pages.
+Bem-vindo ao `canvasgrid-studio`, um estúdio de design web 2-em-1 focado em aprendizado e prática de desenvolvimento front-end moderno. Este projeto é construído iterativamente, focando em código limpo, modular e sem dependências de build.
 
 O projeto possui dois módulos:
 * **Pixel Art Editor:** (Em desenvolvimento)
@@ -8,7 +8,7 @@ O projeto possui dois módulos:
 
 ## Objetivos do Projeto
 
-Este repositório não é apenas sobre o produto final, mas sobre o *processo* de construção. Ao seguir este projeto, você irá praticar e aprender:
+Este repositório não é apenas sobre o produto final, mas sobre o *processo* de construção. Ao seguir este projeto, irei praticar e aprender:
 
 * **JavaScript ES6+ (Modular):** Organização de código em módulos (`import`/`export`) para separar responsabilidades (ex: `main.js`, `pixelArtEditor.js`).
 * **Manipulação Avançada do DOM:** Criação e gerenciamento de centenas ou milhares de elementos (`<div>`) de forma eficiente para o grid de pixels.
