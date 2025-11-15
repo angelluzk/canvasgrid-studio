@@ -1,0 +1,97 @@
+/* Container Wrapper: Centraliza o Grid na área vazia */
+#pixel-editor-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 500px; /* Garante altura mínima */
+    background-color: rgba(0,0,0,0.1); /* Leve destaque da área de trabalho */
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+}
+
+/* O Container do Desenho (Papel) */
+#pixel-grid-container {
+    background-color: #fff; /* Fundo branco padrão por trás do quadriculado */
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); /* Sombra forte para destacar */
+    
+    /* Padrão de transparência (Xadrez) */
+    background-image:
+        linear-gradient(45deg, #ccc 25%, transparent 25%),
+        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ccc 75%),
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    
+    /* Tamanho fixo visual (o zoom virá depois) */
+    width: 500px;
+    height: 500px;
+    
+    /* Garante que não estoure em telas menores */
+    max-width: 100%;
+    aspect-ratio: 1 / 1;
+}
+
+/* GRID SYSTEM */
+.pixel-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--grid-size, 16), 1fr);
+    width: 100%;
+    height: 100%;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: crosshair; /* Cursor de precisão */
+}
+
+/* Célula (Pixel) */
+.grid-cell {
+    width: 100%;
+    height: 100%;
+    /* Borda muito sutil para guiar o olhar */
+    border: 1px solid rgba(0,0,0,0.05); 
+}
+
+/* Remove bordas se o grid for muito denso (ex: 64x64) para não ficar poluído */
+.pixel-grid.dense .grid-cell {
+    border: none;
+}
+
+/* --- SIDEBAR / FERRAMENTAS --- */
+
+.tool-btn {
+    @apply flex flex-col items-center justify-center p-3 rounded-lg border border-gray-200 dark:border-gray-600;
+    @apply bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300;
+    @apply transition-all duration-200 shadow-sm;
+}
+
+.tool-btn:hover {
+    @apply bg-gray-100 dark:bg-gray-600 transform -translate-y-1;
+}
+
+.tool-btn.active {
+    @apply bg-cyan-600 dark:bg-cyan-500 text-white border-cyan-600;
+    @apply ring-2 ring-offset-2 ring-cyan-500 dark:ring-offset-gray-800;
+}
+
+.tool-btn svg {
+    @apply mb-1; /* Espaço entre ícone e texto */
+}
+
+.tool-btn span {
+    @apply text-xs font-medium;
+}
+
+.color-swatch {
+    @apply w-full h-8 rounded cursor-pointer border border-gray-300 dark:border-gray-600 shadow-sm;
+    @apply transition-transform hover:scale-110;
+}
+
+.color-swatch.active {
+    @apply ring-2 ring-offset-2 ring-cyan-500 dark:ring-offset-gray-800 border-transparent;
+    transform: scale(1.1);
+    z-index: 10;
+}

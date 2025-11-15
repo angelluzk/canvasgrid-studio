@@ -23,19 +23,19 @@ Este repositório não é apenas sobre o produto final, mas sobre o *processo* d
 
 ### Módulo: Pixel Art Editor (Em Construção)
 
-* [ ] Estrutura de UI (Sidebar de ferramentas + Grid)
-* [ ] Seletor de Tema (Light/Dark Mode)
-* [ ] Geração de Grid Dinâmico (8x8 até 128x128)
-* [ ] Paleta de Cores (Base + Seletor customizado)
-* [ ] Ferramenta: **Paint** (Pintar)
-* [ ] Ferramenta: **Erase** (Apagar)
-* [ ] Ferramenta: **Pick** (Conta-gotas)
-* [ ] Ferramenta: **Fill** (Balde/Flood Fill)
-* [ ] Ferramenta: **Fill Screen** (Balde da Tela)
-* [ ] Zoom (In/Out/Reset)
-* [ ] Exportação (PNG)
-* [ ] Exportação/Importação (JSON)
-* [ ] Fundo Transparente / Colorido
+* [✓] Estrutura de UI (Sidebar de ferramentas + Grid)
+* [✓] Seletor de Tema (Light/Dark Mode)
+* [✓] Geração de Grid Dinâmico (8x8 até 128x128)
+* [✓] Paleta de Cores (Base + Seletor customizado)
+* [✓] Ferramenta: **Paint** (Pintar)
+* [✓] Ferramenta: **Erase** (Apagar)
+* [✓] Ferramenta: **Pick** (Conta-gotas)
+* [✓] Ferramenta: **Fill** (Balde/Flood Fill)
+* [✓] Ferramenta: **Fill Screen** (Balde da Tela)
+* [✗] Zoom (In/Out/Reset)
+* [✗] Exportação (PNG)
+* [✗] Exportação/Importação (JSON)
+* [✗] Fundo Transparente / Colorido
 
 ## 👩‍🎓 Autoria
 
