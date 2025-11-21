@@ -56,7 +56,7 @@
                 
                 <div class="mb-6">
                     <div class="flex justify-between items-center mb-2">
-                        <label class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">Grid Size</label>
+                        <label for="grid-size-slider" class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">Grid Size</label>
                         <span id="grid-size-label" class="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-cyan-600 dark:text-cyan-400">16x16</span>
                     </div>
                     <input type="range" id="grid-size-slider" min="8" max="64" value="16" step="8" class="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-cyan-600">
@@ -82,7 +82,7 @@
                     <div id="color-palette" class="grid grid-cols-4 gap-3 mb-3"></div>
                     <div class="relative w-full h-10 overflow-hidden rounded-lg ring-1 ring-gray-300 dark:ring-gray-600 cursor-pointer group">
                         <div class="absolute inset-0 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400 pointer-events-none group-hover:text-cyan-500">Cor Customizada</div>
-                        <input type="color" id="color-picker" value="#FF0000" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <input type="color" id="color-picker" value="#FF0000" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" aria-label="Selecionar cor customizada">
                     </div>
                 </div>
 
