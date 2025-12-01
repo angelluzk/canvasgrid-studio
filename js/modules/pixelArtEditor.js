@@ -4,14 +4,13 @@ let activeTool = 'paint';
 let gridState = []; 
 let isMouseDown = false;
 let transparencyColor = 'transparent';
-
 let zoomLevel = 1.0;
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 5.0;
 
-let gridWrapper;
-let gridContainer;
-let gridElement;
+let gridWrapper; 
+let gridContainer; 
+let gridElement; 
 let loadingText;
 let toolButtons;
 let paletteContainer;
@@ -33,16 +32,21 @@ export function initPixelArtEditor(wrapper, toolContainer) {
         console.error('Containers não encontrados.');
         return;
     }
-
+    
     gridWrapper = wrapper.querySelector('#zoom-container');
     loadingText = wrapper.querySelector('#loading-text');
+
+    if (!gridWrapper) {
+         console.error('Sub-container #zoom-container não encontrado.');
+         return;
+    }
 
     gridSizeSlider = toolContainer.querySelector('#grid-size-slider');
     gridSizeLabel = toolContainer.querySelector('#grid-size-label');
     toolButtons = toolContainer.querySelectorAll('.tool-btn');
     paletteContainer = toolContainer.querySelector('#color-palette');
     colorPicker = toolContainer.querySelector('#color-picker');
-
+    
     btnExportPng = toolContainer.querySelector('#btn-export-png');
     btnZoomIn = toolContainer.querySelector('#btn-zoom-in');
     btnZoomOut = toolContainer.querySelector('#btn-zoom-out');
@@ -83,7 +87,6 @@ function setupControlListeners() {
     colorPicker.addEventListener('input', (e) => updateActiveColor(e.target.value));
 
     btnExportPng.addEventListener('click', exportPNG);
-
     btnZoomIn.addEventListener('click', () => updateZoom(0.1));
     btnZoomOut.addEventListener('click', () => updateZoom(-0.1));
 
@@ -99,9 +102,7 @@ function setupControlListeners() {
 function updateZoom(delta) {
     zoomLevel += delta;
     zoomLevel = Math.min(Math.max(zoomLevel, MIN_ZOOM), MAX_ZOOM);
-
     zoomDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
-
     if (gridContainer) {
         gridContainer.style.transform = `scale(${zoomLevel})`;
         gridContainer.style.transformOrigin = 'center top';
@@ -127,7 +128,6 @@ function createGrid() {
         const row = [];
         for (let x = 0; x < gridSize; x++) {
             row.push(transparencyColor);
-            
             const cell = document.createElement('div');
             cell.className = 'grid-cell';
             cell.dataset.x = x;
@@ -193,7 +193,6 @@ function fillScreen() {
 function floodFill(startX, startY, targetColor) {
     const replacementColor = activeColor;
     if (targetColor === replacementColor) return;
-    
     const stack = [[startX, startY]];
     while (stack.length > 0) {
         const [x, y] = stack.pop();
@@ -234,13 +233,10 @@ function rgbToHex(rgb) {
 function exportPNG() {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-
     const scale = 10; 
     canvas.width = gridSize * scale;
     canvas.height = gridSize * scale;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     for (let y = 0; y < gridSize; y++) {
         for (let x = 0; x < gridSize; x++) {
             const color = gridState[y][x];
@@ -250,7 +246,6 @@ function exportPNG() {
             }
         }
     }
-
     const link = document.createElement('a');
     link.download = `pixelart-${new Date().getTime()}.png`;
     link.href = canvas.toDataURL('image/png');

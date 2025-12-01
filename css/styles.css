@@ -1,5 +1,5 @@
-#pixel-editor-wrapper {
-    overflow: hidden;
+#pixel-editor-wrapper, #canvas-wrapper {
+    overflow: hidden; 
 }
 
 #zoom-container {
@@ -37,9 +37,6 @@
     grid-template-columns: repeat(var(--grid-size, 16), 1fr);
     width: 100%;
     height: 100%;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
     user-select: none;
 }
 
@@ -77,4 +74,57 @@
     @apply ring-2 ring-offset-2 ring-cyan-500 dark:ring-offset-gray-800 border-transparent;
     transform: scale(1.1);
     z-index: 10;
+}
+
+.canvas-tool-btn {
+    @apply w-10 h-10 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 transition-colors;
+}
+
+.canvas-tool-btn:hover {
+    @apply bg-gray-100 dark:bg-gray-700 text-cyan-600 dark:text-cyan-400;
+}
+
+.canvas-tool-btn.active {
+    @apply bg-cyan-600 text-white shadow-md;
+}
+
+#canvas-container {
+    width: 800px;
+    height: 600px;
+    background-color: white;
+    background-image:
+        linear-gradient(45deg, #eee 25%, transparent 25%),
+        linear-gradient(-45deg, #eee 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #eee 75%),
+        linear-gradient(-45deg, transparent 75%, #eee 75%);
+    background-size: 20px 20px;
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.drawing-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.drawing-layer.active-layer-canvas {
+    pointer-events: auto;
+    z-index: 10;
+}
+
+.layer-item {
+    @apply flex items-center gap-2 p-2 rounded-lg border border-transparent cursor-pointer select-none bg-gray-50 dark:bg-gray-900/50;
+    @apply hover:bg-gray-100 dark:hover:bg-gray-700;
+}
+
+.layer-item.active {
+    @apply border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20;
+}
+
+.layer-preview {
+    @apply w-10 h-10 bg-white border border-gray-300 dark:border-gray-600 rounded shadow-sm;
 }
