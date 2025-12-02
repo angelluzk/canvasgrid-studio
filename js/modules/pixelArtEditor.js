@@ -1,255 +1,236 @@
-let gridSize = 16;
-let activeColor = '#FF0000';
-let activeTool = 'paint';
-let gridState = []; 
-let isMouseDown = false;
-let transparencyColor = 'transparent';
-let zoomLevel = 1.0;
-const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 5.0;
-
-let gridWrapper; 
-let gridContainer; 
-let gridElement; 
-let loadingText;
-let toolButtons;
-let paletteContainer;
-let colorPicker;
-let gridSizeSlider;
-let gridSizeLabel;
-let btnExportPng;
-let btnZoomIn;
-let btnZoomOut;
-let zoomDisplay;
-
-const baseColors = [
-    '#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF',
-    '#FFA500', '#800080', '#008080', '#FFC0CB', '#A52A2A', '#808080', '#36454F', '#D3D3D3'
-];
-
-export function initPixelArtEditor(wrapper, toolContainer) {
-    if (!wrapper || !toolContainer) {
-        console.error('Containers não encontrados.');
-        return;
-    }
-    
-    gridWrapper = wrapper.querySelector('#zoom-container');
-    loadingText = wrapper.querySelector('#loading-text');
-
-    if (!gridWrapper) {
-         console.error('Sub-container #zoom-container não encontrado.');
-         return;
+export class PixelArtEditor {
+    constructor() {
+        this.state = {
+            gridSize: 16, activeColor: '#7f5af0', activeTool: 'paint',
+            isMouseDown: false, zoom: 1.0, gridData: [],
+            history: [], historyStep: -1
+        };
+        this.ui = {
+            wrapper: document.getElementById('pixel-zoom-wrapper'),
+            toolsPanel: document.getElementById('pixel-tools-panel'),
+            slider: document.getElementById('pixel-grid-slider'),
+            label: document.getElementById('pixel-grid-label'),
+            colorPicker: document.getElementById('pixel-color-picker'),
+            palette: document.getElementById('pixel-palette'),
+            btnZoomIn: document.getElementById('btn-pixel-zoom-in'),
+            btnZoomOut: document.getElementById('btn-pixel-zoom-out'),
+            zoomDisplay: document.getElementById('pixel-zoom-display'),
+            btnExport: document.getElementById('btn-pixel-export'),
+            btnUndo: document.getElementById('btn-pixel-undo'),
+            btnRedo: document.getElementById('btn-pixel-redo'),
+            status: document.getElementById('pixel-status')
+        };
+        this.CONSTANTS = { TRANSPARENT: 'transparent', COLORS: ['#ffffff', '#000000', '#7f5af0', '#2cb67d', '#ff0055', '#ffbe0b', '#3a86ff'] };
+        this.init();
     }
 
-    gridSizeSlider = toolContainer.querySelector('#grid-size-slider');
-    gridSizeLabel = toolContainer.querySelector('#grid-size-label');
-    toolButtons = toolContainer.querySelectorAll('.tool-btn');
-    paletteContainer = toolContainer.querySelector('#color-palette');
-    colorPicker = toolContainer.querySelector('#color-picker');
-    
-    btnExportPng = toolContainer.querySelector('#btn-export-png');
-    btnZoomIn = toolContainer.querySelector('#btn-zoom-in');
-    btnZoomOut = toolContainer.querySelector('#btn-zoom-out');
-    zoomDisplay = toolContainer.querySelector('#zoom-display');
+    init() {
+        if (!this.ui.wrapper) return;
+        this.bindEvents();
+        this.renderPalette();
+        this.createGrid();
+        this.saveState();
+    }
 
-    setupControlListeners();
-    renderPalette();
-    updateActiveColor(baseColors[2]); 
-    createGrid();
-
-    if(loadingText) loadingText.classList.add('hidden');
-}
-
-function setupControlListeners() {
-    window.addEventListener('mousedown', () => { isMouseDown = true; });
-    window.addEventListener('mouseup', () => { isMouseDown = false; });
-
-    gridSizeSlider.addEventListener('input', (e) => {
-        gridSizeLabel.textContent = `${e.target.value}x${e.target.value}`;
-    });
-    gridSizeSlider.addEventListener('change', (e) => {
-        gridSize = parseInt(e.target.value);
-        createGrid();
-    });
-
-    toolButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            if (button.dataset.tool === 'fillScreen') {
-                fillScreen();
-                return;
+    bindEvents() {
+        window.addEventListener('mousedown', () => this.state.isMouseDown = true);
+        window.addEventListener('mouseup', () => {
+            if (this.state.isMouseDown) {
+                this.state.isMouseDown = false;
+                this.saveState();
             }
-            toolButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            activeTool = button.dataset.tool;
         });
-    });
 
-    colorPicker.addEventListener('input', (e) => updateActiveColor(e.target.value));
+        this.ui.slider.addEventListener('change', (e) => { this.state.gridSize = parseInt(e.target.value); this.createGrid(); this.saveState(); });
+        this.ui.slider.addEventListener('input', (e) => this.ui.label.textContent = `${e.target.value}x${e.target.value}`);
+        this.ui.colorPicker.addEventListener('input', (e) => this.setActiveColor(e.target.value));
 
-    btnExportPng.addEventListener('click', exportPNG);
-    btnZoomIn.addEventListener('click', () => updateZoom(0.1));
-    btnZoomOut.addEventListener('click', () => updateZoom(-0.1));
+        this.ui.btnZoomIn.addEventListener('click', () => this.setZoom(0.1));
+        this.ui.btnZoomOut.addEventListener('click', () => this.setZoom(-0.1));
+        this.ui.btnExport.addEventListener('click', () => this.exportPNG());
 
-    gridWrapper.addEventListener('wheel', (e) => {
-        if (e.ctrlKey || e.metaKey) {
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            updateZoom(delta);
-        }
-    });
-}
+        this.ui.btnUndo.addEventListener('click', () => this.undo());
+        this.ui.btnRedo.addEventListener('click', () => this.redo());
 
-function updateZoom(delta) {
-    zoomLevel += delta;
-    zoomLevel = Math.min(Math.max(zoomLevel, MIN_ZOOM), MAX_ZOOM);
-    zoomDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
-    if (gridContainer) {
-        gridContainer.style.transform = `scale(${zoomLevel})`;
-        gridContainer.style.transformOrigin = 'center top';
-        gridContainer.style.marginTop = zoomLevel > 1 ? `${(zoomLevel - 1) * 50}px` : '0';
+        this.ui.toolsPanel.addEventListener('click', (e) => {
+            const btn = e.target.closest('.tool-btn');
+            if (!btn) return;
+            const tool = btn.dataset.tool;
+            if (tool === 'fillScreen') { this.fillScreen(); this.saveState(); }
+            else this.setTool(tool);
+        });
     }
-}
 
-function createGrid() {
-    gridWrapper.innerHTML = ''; 
-    gridState = []; 
-
-    gridContainer = document.createElement('div');
-    gridContainer.id = 'pixel-grid-container';
-    gridContainer.style.transform = `scale(${zoomLevel})`;
-    gridContainer.style.transformOrigin = 'center top';
-    
-    gridElement = document.createElement('div');
-    gridElement.className = 'pixel-grid';
-    if (gridSize > 32) gridElement.classList.add('dense');
-    gridElement.style.setProperty('--grid-size', gridSize);
-    
-    for (let y = 0; y < gridSize; y++) {
-        const row = [];
-        for (let x = 0; x < gridSize; x++) {
-            row.push(transparencyColor);
-            const cell = document.createElement('div');
-            cell.className = 'grid-cell';
-            cell.dataset.x = x;
-            cell.dataset.y = y;
-            gridElement.appendChild(cell);
-        }
-        gridState.push(row);
-    }
-    
-    gridContainer.appendChild(gridElement);
-    gridWrapper.appendChild(gridContainer);
-    
-    gridElement.addEventListener('mousedown', handleGridClick);
-    gridElement.addEventListener('mouseover', handleGridDrag);
-    gridElement.addEventListener('dragstart', (e) => e.preventDefault());
-}
-
-function handleGridClick(e) {
-    if (!e.target.classList.contains('grid-cell')) return;
-    isMouseDown = true;
-    const { x, y } = e.target.dataset;
-    executeTool(parseInt(x), parseInt(y));
-}
-
-function handleGridDrag(e) {
-    if (!isMouseDown || !e.target.classList.contains('grid-cell')) return;
-    const { x, y } = e.target.dataset;
-    if (activeTool === 'paint' || activeTool === 'erase') {
-        executeTool(parseInt(x), parseInt(y));
-    }
-}
-
-function executeTool(x, y) {
-    switch (activeTool) {
-        case 'paint': paintCell(x, y, activeColor); break;
-        case 'erase': paintCell(x, y, transparencyColor); break;
-        case 'fill': floodFill(x, y, gridState[y][x]); break;
-        case 'pick':
-            const picked = gridState[y][x];
-            if (picked !== transparencyColor) {
-                updateActiveColor(picked);
-                colorPicker.value = picked;
-            }
-            break;
-    }
-}
-
-function paintCell(x, y, color) {
-    if (gridState[y][x] === color) return;
-    gridState[y][x] = color;
-    const cellElement = gridElement.children[gridSize * y + x];
-    if (cellElement) cellElement.style.backgroundColor = color;
-}
-
-function fillScreen() {
-    for (let y = 0; y < gridSize; y++) {
-        for (let x = 0; x < gridSize; x++) {
-            paintCell(x, y, activeColor);
+    handleShortcut(key, ctrl) {
+        if (ctrl && key === 'z') return this.undo();
+        if (ctrl && key === 'y') return this.redo();
+        switch (key) {
+            case 'b': this.setTool('paint'); break;
+            case 'e': this.setTool('erase'); break;
+            case 'f': case 'g': this.setTool('fill'); break;
+            case 'i': this.setTool('pick'); break;
         }
     }
-}
 
-function floodFill(startX, startY, targetColor) {
-    const replacementColor = activeColor;
-    if (targetColor === replacementColor) return;
-    const stack = [[startX, startY]];
-    while (stack.length > 0) {
-        const [x, y] = stack.pop();
-        if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) continue;
-        if (gridState[y][x] === targetColor) {
-            paintCell(x, y, replacementColor);
-            stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+    saveState() {
+        const currentState = JSON.stringify(this.state.gridData);
+
+        if (this.state.historyStep >= 0 && this.state.history[this.state.historyStep] === currentState) return;
+
+        if (this.state.historyStep < this.state.history.length - 1) {
+            this.state.history = this.state.history.slice(0, this.state.historyStep + 1);
+        }
+
+        this.state.history.push(currentState);
+        this.state.historyStep++;
+
+        if (this.state.history.length > 30) {
+            this.state.history.shift();
+            this.state.historyStep--;
         }
     }
-}
 
-function renderPalette() {
-    paletteContainer.innerHTML = '';
-    baseColors.forEach(color => {
-        const swatch = document.createElement('button');
-        swatch.className = 'color-swatch';
-        swatch.style.backgroundColor = color;
-        swatch.addEventListener('click', () => updateActiveColor(color));
-        paletteContainer.appendChild(swatch);
-    });
-}
+    undo() {
+        if (this.state.historyStep > 0) {
+            this.state.historyStep--;
+            this.restoreState();
+            this.updateStatus('Desfazer');
+        }
+    }
 
-function updateActiveColor(color) {
-    activeColor = color;
-    const swatches = paletteContainer.querySelectorAll('.color-swatch');
-    swatches.forEach(swatch => {
-        swatch.classList.toggle('active', swatch.style.backgroundColor === color || rgbToHex(swatch.style.backgroundColor) === color);
-    });
-}
+    redo() {
+        if (this.state.historyStep < this.state.history.length - 1) {
+            this.state.historyStep++;
+            this.restoreState();
+            this.updateStatus('Refazer');
+        }
+    }
 
-function rgbToHex(rgb) {
-    if (!rgb || rgb.indexOf('rgb') === -1) return rgb;
-    const rgbValues = rgb.match(/\d+/g);
-    if (!rgbValues) return rgb;
-    return "#" + ((1 << 24) + (parseInt(rgbValues[0]) << 16) + (parseInt(rgbValues[1]) << 8) + parseInt(rgbValues[2])).toString(16).slice(1).toUpperCase();
-}
-
-function exportPNG() {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const scale = 10; 
-    canvas.width = gridSize * scale;
-    canvas.height = gridSize * scale;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (let y = 0; y < gridSize; y++) {
-        for (let x = 0; x < gridSize; x++) {
-            const color = gridState[y][x];
-            if (color !== 'transparent') {
-                ctx.fillStyle = color;
-                ctx.fillRect(x * scale, y * scale, scale, scale);
+    restoreState() {
+        const data = JSON.parse(this.state.history[this.state.historyStep]);
+        this.state.gridData = data;
+        for (let y = 0; y < this.state.gridSize; y++) {
+            for (let x = 0; x < this.state.gridSize; x++) {
+                const color = data[y][x];
+                const cell = this.ui.gridContainer.children[(this.state.gridSize * y) + x];
+                if (cell) cell.style.backgroundColor = color;
             }
         }
     }
-    const link = document.createElement('a');
-    link.download = `pixelart-${new Date().getTime()}.png`;
-    link.href = canvas.toDataURL('image/png');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    createGrid() {
+        this.ui.wrapper.innerHTML = '';
+        this.state.gridData = [];
+        const container = document.createElement('div');
+        container.id = 'pixel-grid-container';
+        container.style.width = '500px'; container.style.height = '500px';
+        container.style.display = 'grid';
+        container.style.gridTemplateColumns = `repeat(${this.state.gridSize}, 1fr)`;
+        container.style.transform = `scale(${this.state.zoom})`;
+        container.style.transformOrigin = 'center top';
+
+        for (let y = 0; y < this.state.gridSize; y++) {
+            const row = [];
+            for (let x = 0; x < this.state.gridSize; x++) {
+                row.push(this.CONSTANTS.TRANSPARENT);
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                if (this.state.gridSize <= 32) cell.style.border = '1px solid rgba(128,128,128,0.1)';
+                cell.dataset.x = x; cell.dataset.y = y;
+                container.appendChild(cell);
+            }
+            this.state.gridData.push(row);
+        }
+
+        container.addEventListener('mousedown', (e) => this.handleInteract(e));
+        container.addEventListener('mouseover', (e) => { if (this.state.isMouseDown) this.handleInteract(e); });
+        container.addEventListener('dragstart', (e) => e.preventDefault());
+
+        this.ui.gridContainer = container;
+        this.ui.wrapper.appendChild(container);
+    }
+
+    handleInteract(e) {
+        if (!e.target.dataset.x) return;
+        this.executeTool(parseInt(e.target.dataset.x), parseInt(e.target.dataset.y));
+    }
+
+    executeTool(x, y) {
+        switch (this.state.activeTool) {
+            case 'paint': this.paint(x, y, this.state.activeColor); break;
+            case 'erase': this.paint(x, y, this.CONSTANTS.TRANSPARENT); break;
+            case 'fill': this.floodFill(x, y, this.state.gridData[y][x]); break;
+            case 'pick': this.setActiveColor(this.state.gridData[y][x]); this.ui.colorPicker.value = this.state.activeColor; break;
+        }
+    }
+
+    paint(x, y, color) {
+        if (this.state.gridData[y][x] === color) return;
+        this.state.gridData[y][x] = color;
+        this.ui.gridContainer.children[(this.state.gridSize * y) + x].style.backgroundColor = color;
+    }
+
+    fillScreen() {
+        for (let y = 0; y < this.state.gridSize; y++) for (let x = 0; x < this.state.gridSize; x++) this.paint(x, y, this.state.activeColor);
+    }
+
+    floodFill(sx, sy, tColor) {
+        const rColor = this.state.activeColor;
+        if (tColor === rColor) return;
+        const stack = [[sx, sy]];
+        while (stack.length) {
+            const [x, y] = stack.pop();
+            if (x < 0 || x >= this.state.gridSize || y < 0 || y >= this.state.gridSize) continue;
+            if (this.state.gridData[y][x] === tColor) {
+                this.paint(x, y, rColor);
+                stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+            }
+        }
+        this.saveState();
+    }
+
+    setTool(tool) {
+        this.state.activeTool = tool;
+        this.ui.toolsPanel.querySelectorAll('.tool-btn').forEach(b => {
+            if (b.dataset.tool === tool) b.classList.add('active');
+            else b.classList.remove('active');
+        });
+        this.updateStatus(`Ferramenta: ${tool.toUpperCase()}`);
+    }
+
+    setActiveColor(color) {
+        this.state.activeColor = color;
+        this.ui.palette.querySelectorAll('.color-swatch').forEach(s => s.classList.toggle('active', s.style.backgroundColor === color));
+    }
+
+    setZoom(delta) {
+        this.state.zoom = Math.max(0.5, Math.min(this.state.zoom + delta, 5.0));
+        if (this.ui.gridContainer) {
+            this.ui.gridContainer.style.transform = `scale(${this.state.zoom})`;
+            this.ui.gridContainer.style.marginBottom = this.state.zoom > 1 ? `${(this.state.zoom - 1) * 200}px` : '0';
+        }
+        this.ui.zoomDisplay.textContent = `${Math.round(this.state.zoom * 100)}%`;
+    }
+
+    updateStatus(msg) { if (this.ui.status) this.ui.status.textContent = msg; }
+
+    renderPalette() {
+        this.ui.palette.innerHTML = '';
+        this.CONSTANTS.COLORS.forEach(c => {
+            const btn = document.createElement('button');
+            btn.className = 'color-swatch'; btn.style.backgroundColor = c;
+            btn.onclick = () => this.setActiveColor(c);
+            this.ui.palette.appendChild(btn);
+        });
+    }
+
+    exportPNG() {
+        const c = document.createElement('canvas'); const s = 20; const z = this.state.gridSize;
+        c.width = z * s; c.height = z * s; const ctx = c.getContext('2d');
+        for (let y = 0; y < z; y++) for (let x = 0; x < z; x++) {
+            const color = this.state.gridData[y][x];
+            if (color !== 'transparent') { ctx.fillStyle = color; ctx.fillRect(x * s, y * s, s, s); }
+        }
+        const a = document.createElement('a'); a.download = 'pixel.png'; a.href = c.toDataURL(); a.click();
+    }
 }

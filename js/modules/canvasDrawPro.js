@@ -1,188 +1,380 @@
-let width = 800;
-let height = 600;
-let brushColor = '#000000';
-let brushSize = 5;
-let currentTool = 'brush';
-let isDrawing = false;
-let layers = [];
-let activeLayerId = null;
+export class CanvasDrawPro {
+    constructor() {
+        this.config = { width: 800, height: 600, bgColor: '#ffffff' };
 
-let container;
-let layersListEl;
-let colorPicker;
-let brushSizeInput;
-let toolsBtns;
+        this.state = {
+            brushColor: '#7f5af0',
+            brushSize: 5,
+            currentTool: 'brush',
+            isDrawing: false,
+            layers: [],
+            activeLayerId: null,
+            zoom: 1.0,
+            history: [],
+            historyIndex: -1,
+            tempSnapshot: null
+        };
 
-export function initCanvasDrawPro(wrapper) {
-    if (!document.getElementById('canvas-container')) return;
+        this.ui = {
+            container: document.getElementById('canvas-container'),
+            zoomWrapper: document.getElementById('canvas-zoom-wrapper'),
+            layersList: document.getElementById('layers-list'),
+            colorPicker: document.getElementById('canvas-color-picker'),
+            brushSlider: document.getElementById('canvas-brush-size'),
+            sizeLabel: document.getElementById('canvas-size-label'),
+            toolsPanel: document.getElementById('canvas-tools-panel'),
+            btnAddLayer: document.getElementById('btn-add-layer'),
+            btnDelLayer: document.getElementById('btn-delete-layer'),
+            btnDownload: document.getElementById('btn-canvas-export'),
+            btnZoomIn: document.getElementById('btn-canvas-zoom-in'),
+            btnZoomOut: document.getElementById('btn-canvas-zoom-out'),
+            zoomDisplay: document.getElementById('canvas-zoom-display'),
+            status: document.getElementById('canvas-status'),
+            btnUndo: document.getElementById('btn-canvas-undo'),
+            btnRedo: document.getElementById('btn-canvas-redo')
+        };
 
-    console.log("Iniciando Canvas Draw Pro Engine...");
-
-    container = document.getElementById('canvas-container');
-    layersListEl = document.getElementById('layers-list');
-    colorPicker = document.getElementById('canvas-color-picker');
-    brushSizeInput = document.getElementById('brush-size');
-    toolsBtns = document.querySelectorAll('.canvas-tool-btn');
-
-    setupUI();
-
-    if (layers.length === 0) {
-        addLayer('Fundo');
+        this.init();
     }
-}
 
-function setupUI() {
-    colorPicker.addEventListener('input', (e) => brushColor = e.target.value);
+    init() {
+        if (!this.ui.container) return;
 
-    brushSizeInput.addEventListener('input', (e) => brushSize = e.target.value);
+        this.ui.container.style.width = `${this.config.width}px`;
+        this.ui.container.style.height = `${this.config.height}px`;
+        this.ui.container.style.position = 'relative';
 
-    toolsBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            toolsBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentTool = btn.dataset.tool;
+        this.bindEvents();
+        this.addLayer('Fundo');
+        this.updateStatus('Pronto para desenhar');
+    }
+
+    bindEvents() {
+        this.ui.colorPicker.addEventListener('input', (e) => {
+            this.state.brushColor = e.target.value;
+            e.target.parentElement.style.borderColor = e.target.value;
         });
-    });
 
-    document.getElementById('btn-add-layer').addEventListener('click', () => addLayer());
-    document.getElementById('btn-delete-layer').addEventListener('click', deleteActiveLayer);
-    document.getElementById('btn-download-canvas').addEventListener('click', exportCanvas);
-}
+        this.ui.brushSlider.addEventListener('input', (e) => {
+            this.state.brushSize = parseInt(e.target.value);
+            this.ui.sizeLabel.textContent = `${this.state.brushSize}px`;
+            this.updateStatus(`Tamanho: ${this.state.brushSize}px`);
+        });
 
-function addLayer(name = null) {
-    const id = Date.now();
-    const layerName = name || `Camada ${layers.length + 1}`;
+        this.ui.toolsPanel.addEventListener('click', (e) => {
+            const btn = e.target.closest('.tool-btn');
+            if (!btn) return;
+            this.setTool(btn.dataset.tool);
+        });
 
-    const canvas = document.createElement('canvas');
-    canvas.classList.add('drawing-layer');
-    canvas.id = `layer-${id}`;
+        this.ui.btnAddLayer.addEventListener('click', () => this.addLayer());
+        this.ui.btnDelLayer.addEventListener('click', () => this.deleteActiveLayer());
+        this.ui.btnDownload.addEventListener('click', () => this.exportCanvas());
 
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+        this.ui.btnZoomIn.addEventListener('click', () => this.setZoom(0.1));
+        this.ui.btnZoomOut.addEventListener('click', () => this.setZoom(-0.1));
+        this.ui.zoomWrapper.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) { e.preventDefault(); this.setZoom(e.deltaY > 0 ? -0.1 : 0.1); }
+        });
 
-    container.appendChild(canvas);
-    
-    const layerObj = { id, name: layerName, canvas, ctx, visible: true };
-    layers.push(layerObj);
+        if (this.ui.btnUndo) this.ui.btnUndo.addEventListener('click', () => this.undo());
+        if (this.ui.btnRedo) this.ui.btnRedo.addEventListener('click', () => this.redo());
+    }
+    handleShortcut(key, ctrl) {
+        if (ctrl && key === 'z') return this.undo();
+        if (ctrl && key === 'y') return this.redo();
 
-    setupCanvasEvents(canvas);
-
-    setActiveLayer(id);
-    renderLayersList();
-}
-
-function setActiveLayer(id) {
-    activeLayerId = id;
-
-    layers.forEach(l => {
-        if (l.id === id) {
-            l.canvas.classList.add('active-layer-canvas');
-        } else {
-            l.canvas.classList.remove('active-layer-canvas');
+        switch (key) {
+            case 'b': this.setTool('brush'); break;
+            case 'e': this.setTool('eraser'); break;
+            case 'f': case 'g': this.setTool('fill'); break;
+            case 'i': this.setTool('pick'); break;
+            case '[': this.changeSize(-2); break;
+            case ']': this.changeSize(2); break;
         }
-    });
+    }
 
-    renderLayersList();
-}
+    setTool(tool) {
+        this.state.currentTool = tool;
+        this.ui.toolsPanel.querySelectorAll('.tool-btn').forEach(b => {
+            if (b.dataset.tool === tool) b.classList.add('active');
+            else b.classList.remove('active');
+        });
+        this.updateCursor();
+        this.updateStatus(`Ferramenta: ${tool.toUpperCase()}`);
+    }
 
-function renderLayersList() {
-    layersListEl.innerHTML = '';
+    changeSize(delta) {
+        const newSize = Math.max(1, Math.min(100, this.state.brushSize + delta));
+        this.state.brushSize = newSize;
+        this.ui.brushSlider.value = newSize;
+        this.ui.sizeLabel.textContent = `${newSize}px`;
+        this.updateStatus(`Tamanho: ${newSize}px`);
+    }
 
-    [...layers].reverse().forEach(layer => {
-        const item = document.createElement('div');
-        item.className = `layer-item ${layer.id === activeLayerId ? 'active' : ''}`;
-        item.onclick = () => setActiveLayer(layer.id);
-        
-        item.innerHTML = `
-            <div class="layer-preview"></div>
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${layer.name}</span>
-        `;
-        
-        layersListEl.appendChild(item);
-    });
-}
+    setZoom(delta) {
+        this.state.zoom = Math.max(0.1, Math.min(this.state.zoom + delta, 5.0));
+        this.ui.container.style.transform = `scale(${this.state.zoom})`;
+        this.ui.zoomDisplay.textContent = `${Math.round(this.state.zoom * 100)}%`;
+    }
 
-function setupCanvasEvents(canvas) {
-    const startDraw = (e) => {
-        isDrawing = true;
-        draw(e);
-    };
-    
-    const stopDraw = () => {
-        isDrawing = false;
-        const layer = layers.find(l => l.id === activeLayerId);
-        if(layer) layer.ctx.beginPath();
-    };
-    
-    const draw = (e) => {
-        if (!isDrawing) return;
-        const layer = layers.find(l => l.id === activeLayerId);
+    updateStatus(msg) {
+        if (this.ui.status) {
+            this.ui.status.textContent = msg;
+            this.ui.status.style.opacity = '1';
+            setTimeout(() => this.ui.status.style.opacity = '0.7', 2000);
+        }
+    }
+
+    updateCursor() {
+        this.ui.container.className = `bg-white shadow-2xl transition-shadow cursor-${this.state.currentTool}`;
+    }
+
+    captureLayerState(layerId) {
+        const layer = this.state.layers.find(l => l.id === layerId);
+        if (!layer) return null;
+        return layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
+    }
+
+    startAction() {
+        const layer = this.getActiveLayer();
         if (!layer) return;
+        this.state.tempSnapshot = this.captureLayerState(layer.id);
+    }
 
+    endAction() {
+        const layer = this.getActiveLayer();
+        if (!layer || !this.state.tempSnapshot) return;
+
+        const finalSnapshot = this.captureLayerState(layer.id);
+
+        if (this.state.historyIndex < this.state.history.length - 1) {
+            this.state.history = this.state.history.slice(0, this.state.historyIndex + 1);
+        }
+
+        this.state.history.push({
+            layerId: layer.id,
+            before: this.state.tempSnapshot,
+            after: finalSnapshot
+        });
+
+        this.state.historyIndex++;
+
+        if (this.state.history.length > 30) {
+            this.state.history.shift();
+            this.state.historyIndex--;
+        }
+
+        this.state.tempSnapshot = null;
+    }
+
+    undo() {
+        if (this.state.historyIndex < 0) return;
+
+        const action = this.state.history[this.state.historyIndex];
+        this.restoreLayerPixels(action.layerId, action.before);
+
+        this.state.historyIndex--;
+        this.updateStatus('Desfazer');
+    }
+
+    redo() {
+        if (this.state.historyIndex >= this.state.history.length - 1) return;
+
+        this.state.historyIndex++;
+        const action = this.state.history[this.state.historyIndex];
+
+        this.restoreLayerPixels(action.layerId, action.after);
+        this.updateStatus('Refazer');
+    }
+
+    restoreLayerPixels(layerId, imageData) {
+        const layer = this.state.layers.find(l => l.id === layerId);
+        if (layer && imageData) {
+            layer.ctx.putImageData(imageData, 0, 0);
+            if (this.state.activeLayerId !== layerId) {
+                this.setActiveLayer(layerId);
+            }
+        }
+    }
+
+    addLayer(name = null) {
+        const id = Date.now();
+        const canvas = document.createElement('canvas');
+        canvas.id = `layer-${id}`;
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0'; canvas.style.left = '0';
+
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = this.config.width * dpr;
+        canvas.height = this.config.height * dpr;
+        canvas.style.width = '100%'; canvas.style.height = '100%';
+
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.scale(dpr, dpr);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        if (this.state.layers.length === 0) {
+            ctx.fillStyle = this.config.bgColor;
+            ctx.fillRect(0, 0, this.config.width, this.config.height);
+        }
+
+        this.ui.container.appendChild(canvas);
+        const layerObj = { id, name: name || `Camada ${this.state.layers.length + 1}`, canvas, ctx, visible: true };
+        this.state.layers.push(layerObj);
+
+        this.setupDrawingEvents(canvas);
+        this.setActiveLayer(id);
+    }
+
+    setActiveLayer(id) {
+        this.state.activeLayerId = id;
+        this.state.layers.forEach(l => l.canvas.style.pointerEvents = l.id === id ? 'auto' : 'none');
+        this.renderLayersList();
+    }
+
+    deleteActiveLayer() {
+        if (this.state.layers.length <= 1) {
+            this.updateStatus('Impossível apagar a última camada');
+            return;
+        }
+
+        const index = this.state.layers.findIndex(l => l.id === this.state.activeLayerId);
+        if (index > -1) {
+            this.state.layers[index].canvas.remove();
+            this.state.layers.splice(index, 1);
+            this.setActiveLayer(this.state.layers[Math.max(0, index - 1)].id);
+        }
+    }
+
+    renderLayersList() {
+        this.ui.layersList.innerHTML = '';
+        [...this.state.layers].reverse().forEach(layer => {
+            const item = document.createElement('div');
+            const isActive = layer.id === this.state.activeLayerId;
+            item.className = `layer-item ${isActive ? 'active' : ''}`;
+            item.onclick = () => this.setActiveLayer(layer.id);
+
+            item.innerHTML = `
+                <span class="flex-grow font-medium text-sm">${layer.name}</span>
+                ${isActive ? '<div class="w-2 h-2 rounded-full bg-studio-primary"></div>' : ''}
+            `;
+            this.ui.layersList.appendChild(item);
+        });
+    }
+
+    setupDrawingEvents(canvas) {
+        const getPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (e.clientX - rect.left) / this.state.zoom,
+                y: (e.clientY - rect.top) / this.state.zoom
+            };
+        };
+
+        const start = (e) => {
+            if (this.state.currentTool === 'fill') {
+                this.startAction();
+                this.floodFill();
+                this.endAction();
+                return;
+            }
+            if (this.state.currentTool === 'pick') {
+                return this.pickColor(getPos(e));
+            }
+
+            this.state.isDrawing = true;
+            this.startAction();
+            this.draw(getPos(e));
+        };
+
+        const move = (e) => {
+            if (this.state.isDrawing) this.draw(getPos(e));
+        };
+
+        const end = () => {
+            if (this.state.isDrawing) {
+                this.state.isDrawing = false;
+                const layer = this.getActiveLayer();
+                if (layer) layer.ctx.beginPath();
+
+                this.endAction();
+            }
+        };
+
+        canvas.addEventListener('mousedown', start);
+        canvas.addEventListener('mousemove', move);
+        canvas.addEventListener('mouseup', end);
+        canvas.addEventListener('mouseout', end);
+    }
+
+    draw(pos) {
+        const layer = this.getActiveLayer();
+        if (!layer) return;
         const ctx = layer.ctx;
 
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        ctx.lineWidth = this.state.brushSize;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
 
-        ctx.lineWidth = brushSize;
-        if (currentTool === 'eraser') {
+        if (this.state.currentTool === 'eraser') {
             ctx.globalCompositeOperation = 'destination-out';
         } else {
             ctx.globalCompositeOperation = 'source-over';
-            ctx.strokeStyle = brushColor;
+            ctx.strokeStyle = this.state.brushColor;
+            ctx.shadowBlur = 0.5;
+            ctx.shadowColor = this.state.brushColor;
         }
 
-        ctx.lineTo(x, y);
+        ctx.lineTo(pos.x, pos.y);
         ctx.stroke();
-
         ctx.beginPath();
-        ctx.moveTo(x, y);
-    };
+        ctx.moveTo(pos.x, pos.y);
 
-    canvas.addEventListener('mousedown', startDraw);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDraw);
-    canvas.addEventListener('mouseout', stopDraw);
-}
-
-function deleteActiveLayer() {
-    if (layers.length <= 1) return;
-    
-    const index = layers.findIndex(l => l.id === activeLayerId);
-    if (index > -1) {
-        const layer = layers[index];
-        layer.canvas.remove();
-        layers.splice(index, 1);
-
-        const nextId = layers[Math.max(0, index - 1)].id;
-        setActiveLayer(nextId);
+        ctx.shadowBlur = 0;
     }
-}
 
-function exportCanvas() {
-    const tempCanvas = document.createElement('canvas');
-    const dpr = window.devicePixelRatio || 1;
-    tempCanvas.width = width * dpr;
-    tempCanvas.height = height * dpr;
-    const tempCtx = tempCanvas.getContext('2d');
+    pickColor(pos) {
+        const ctx = this.getActiveLayer().ctx;
+        const p = ctx.getImageData(pos.x, pos.y, 1, 1).data;
+        const hex = "#" + ((1 << 24) + (p[0] << 16) + (p[1] << 8) + p[2]).toString(16).slice(1);
 
-    layers.forEach(layer => {
-        if (layer.visible) {
-            tempCtx.drawImage(layer.canvas, 0, 0);
-        }
-    });
-    
-    const link = document.createElement('a');
-    link.download = 'canvas-art.png';
-    link.href = tempCanvas.toDataURL();
-    link.click();
+        this.state.brushColor = hex;
+        this.ui.colorPicker.value = hex;
+        this.setTool('brush');
+        this.updateStatus(`Cor selecionada: ${hex}`);
+    }
+
+    floodFill() {
+        const ctx = this.getActiveLayer().ctx;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = this.state.brushColor;
+        ctx.fillRect(0, 0, this.config.width, this.config.height);
+        this.updateStatus("Camada preenchida");
+    }
+
+    getActiveLayer() {
+        return this.state.layers.find(l => l.id === this.state.activeLayerId);
+    }
+
+    exportCanvas() {
+        const temp = document.createElement('canvas');
+        const dpr = window.devicePixelRatio || 1;
+        temp.width = this.config.width * dpr;
+        temp.height = this.config.height * dpr;
+
+        const ctx = temp.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, temp.width, temp.height);
+
+        this.state.layers.forEach(l => {
+            if (l.visible) ctx.drawImage(l.canvas, 0, 0);
+        });
+
+        const link = document.createElement('a');
+        link.download = `art-${Date.now()}.png`;
+        link.href = temp.toDataURL();
+        link.click();
+    }
 }

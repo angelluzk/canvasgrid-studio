@@ -1,41 +1,110 @@
-# CanvasGrid Studio
+# 🎨 CanvasGrid Studio Pro
 
-Bem-vindo ao `canvasgrid-studio`, um estúdio de design web 2-em-1 focado em aprendizado e prática de desenvolvimento front-end moderno. Este projeto é construído iterativamente, focando em código limpo, modular e sem dependências de build.
+![Project Status](https://img.shields.io/badge/status-stable-green)
+![Version](https://img.shields.io/badge/version-2.1.0-purple)
 
-O projeto possui dois módulos:
-* **Pixel Art Editor:** (Em desenvolvimento)
-* **Canvas Draw Pro:** (Planejado)
+**CanvasGrid Studio Pro** é uma suíte de criação de arte digital web-based, desenvolvida para oferecer uma experiência profissional, fluida e imersiva. O projeto combina um motor de desenho vetorial/raster com camadas e um editor de Pixel Art dedicado.
 
-## Objetivos do Projeto
+🔗 **[Acesse a Demo Online](EM BREVE)**
 
-Este repositório não é apenas sobre o produto final, mas sobre o *processo* de construção. Ao seguir este projeto, irei praticar e aprender:
+---
 
-* **JavaScript ES6+ (Modular):** Organização de código em módulos (`import`/`export`) para separar responsabilidades (ex: `main.js`, `pixelArtEditor.js`).
-* **Manipulação Avançada do DOM:** Criação e gerenciamento de centenas ou milhares de elementos (`<div>`) de forma eficiente para o grid de pixels.
-* **Gerenciamento de Estado (Front-End):** A importância de separar o "Modelo" (o estado dos dados, ex: um Array 2D das cores) da "View" (o DOM).
-* **Algoritmos:** Implementação de algoritmos clássicos, como o **Flood Fill** (o "balde de tinta"), de forma iterativa (não-recursiva) para evitar estouro de pilha.
-* **Event Handling:** Gerenciamento complexo de eventos do mouse (`mousedown`, `mouseup`, `mouseover`) para criar uma experiência de desenho fluida.
-* **CSS Moderno:** Uso de CSS Grid e Variáveis CSS (`--grid-size`) para criar layouts dinâmicos e responsivos.
-* **TailwindCSS (via CDN):** Prototipação rápida e design profissional (incluindo **Light/Dark Mode**) sem sair do HTML/CSS.
-* **Boas Práticas:** Código limpo, semântica HTML, acessibilidade (ARIA labels) e a regra "Não misture CSS/JS inline".
+## ✨ Funcionalidades Principais
 
-## Status do Projeto
+### 🖌️ Módulo: Canvas Draw Pro
+Um estúdio de desenho livre focado em performance e liberdade criativa.
+* **Sistema de Camadas (Layers):** Crie, ordene e exclua camadas independentes.
+* **Motor High-DPI:** Renderização nítida em telas Retina/4K.
+* **Histórico Robusto:** Sistema de Undo/Redo (Ctrl+Z / Ctrl+Y) sem perda de dados.
+* **Ferramentas:** Pincel (com suavização), Borracha, Balde de Tinta e Conta-gotas.
+* **Zoom Infinito:** Navegação fluida pela arte.
 
-### Módulo: Pixel Art Editor (Em Construção)
+### 👾 Módulo: Pixel Art Editor
+Um editor preciso para criação de sprites e assets de jogos.
+* **Grids Dinâmicos:** Suporte de 8x8 até 64x64 pixels.
+* **Ferramentas de Precisão:** Lápis, Borracha, Flood Fill e Picker.
+* **Exportação Inteligente:** Salva PNGs em alta resolução (Upscaled) prontos para uso.
+* **Interface Dedicada:** Paleta de cores e controles focados em Pixel Art.
 
-* [✓] Estrutura de UI (Sidebar de ferramentas + Grid)
-* [✓] Seletor de Tema (Light/Dark Mode)
-* [✓] Geração de Grid Dinâmico (8x8 até 128x128)
-* [✓] Paleta de Cores (Base + Seletor customizado)
-* [✓] Ferramenta: **Paint** (Pintar)
-* [✓] Ferramenta: **Erase** (Apagar)
-* [✓] Ferramenta: **Pick** (Conta-gotas)
-* [✓] Ferramenta: **Fill** (Balde/Flood Fill)
-* [✓] Ferramenta: **Fill Screen** (Balde da Tela)
-* [✗] Zoom (In/Out/Reset)
-* [✗] Exportação (PNG)
-* [✗] Exportação/Importação (JSON)
-* [✗] Fundo Transparente / Colorido
+---
+
+## 🛠️ Stack Tecnológica
+
+O projeto foi construído seguindo os princípios de **Vanilla JS Moderno** e **Orientação a Objetos (OOP)**.
+
+* **Core:** HTML5, CSS3, JavaScript (ES6+ Modules).
+* **Estilização:** [Tailwind CSS](https://tailwindcss.com/) (Configuração via CDN para prototipagem ágil).
+* **Ícones:** [Lucide Icons](https://lucide.dev/).
+* **Arquitetura:**
+    * Classes JS separadas (`CanvasDrawPro`, `PixelArtEditor`).
+    * Gerenciamento de Estado centralizado em cada módulo.
+    * Event Delegation para alta performance no DOM.
+
+---
+
+## 🚀 Como Executar Localmente
+
+Este projeto utiliza Módulos ES6 (`import`/`export`), o que requer um servidor HTTP local para evitar bloqueios de CORS do navegador.
+
+### Pré-requisitos
+* Um navegador moderno (Chrome, Edge, Firefox).
+* Git (opcional).
+
+### Passo a Passo
+
+1.  **Clone o repositório:**
+    ```bash
+    git clone [https://github.com/SEU-USUARIO/canvasgrid-studio.git](https://github.com/SEU-USUARIO/canvasgrid-studio.git)
+    cd canvasgrid-studio
+    ```
+
+2.  **Inicie um servidor local:**
+
+    * **Opção A (Python 3):**
+        ```bash
+        python -m http.server 8000
+        ```
+    * **Opção B (Node.js / http-server):**
+        ```bash
+        npx http-server .
+        ```
+    * **Opção C (VS Code):**
+        Instale a extensão "Live Server" e clique em "Go Live" no canto inferior direito.
+
+3.  **Acesse:**
+    Abra `http://localhost:8000` no seu navegador.
+
+---
+
+## ⌨️ Atalhos de Teclado
+
+Maximize sua produtividade com hotkeys profissionais:
+
+| Tecla | Ação |
+| :--- | :--- |
+| **B** | Ferramenta Pincel / Lápis |
+| **E** | Ferramenta Borracha |
+| **F** / **G** | Balde de Tinta (Fill) |
+| **I** | Conta-gotas (Eyedropper) |
+| **[** | Diminuir Pincel |
+| **]** | Aumentar Pincel |
+| **Ctrl + Z** | Desfazer (Undo) |
+| **Ctrl + Y** | Refazer (Redo) |
+| **Scroll** | Zoom In / Out (Segurando Ctrl em alguns navegadores) |
+
+---
+
+## 🤝 Contribuição
+
+Este é um projeto Open Source focado em aprendizado e portfólio. Sinta-se livre para abrir Issues ou Pull Requests.
+
+1.  Faça um Fork do projeto.
+2.  Crie uma Branch para sua Feature (`git checkout -b feature/NovaFeature`).
+3.  Faça o Commit (`git commit -m 'Adicionando NovaFeature'`).
+4.  Faça o Push (`git push origin feature/NovaFeature`).
+5.  Abra um Pull Request.
+
+---
 
 ## 👩‍🎓 Autoria
 

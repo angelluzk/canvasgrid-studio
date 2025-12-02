@@ -1,71 +1,57 @@
-import { initCanvasDrawPro } from './modules/canvasDrawPro.js';
-import { initPixelArtEditor } from './modules/pixelArtEditor.js';
+import { CanvasDrawPro } from './modules/canvasDrawPro.js';
+import { PixelArtEditor } from './modules/pixelArtEditor.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    const canvasApp = new CanvasDrawPro();
+    const pixelApp = new PixelArtEditor();
 
-    const tabs = document.querySelectorAll('.tab-btn');
+    let activeModule = 'canvas';
+
+    const tabs = document.querySelectorAll('.nav-pill');
     const modules = document.querySelectorAll('.app-module');
-    
-    const activeTabClasses = ['text-cyan-600', 'dark:text-white', 'border-cyan-600', 'dark:border-cyan-500'];
-    const inactiveTabClasses = ['text-gray-500', 'dark:text-gray-400', 'border-transparent', 'hover:text-cyan-600', 'dark:hover:text-cyan-400'];
 
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            const targetId = tab.getAttribute('data-target');
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
 
-            tabs.forEach(t => {
-                const isActive = t === tab;
-                t.classList.remove(...(isActive ? inactiveTabClasses : activeTabClasses));
-                t.classList.add(...(isActive ? activeTabClasses : inactiveTabClasses));
-            });
+            const target = tab.dataset.target;
+            activeModule = target === 'app-canvas-draw-pro' ? 'canvas' : 'pixel';
 
-            modules.forEach(module => {
-                if (module.id === targetId) {
-                    module.classList.remove('hidden');
-                    module.classList.add('flex');
+            modules.forEach(m => {
+                if (m.id === target) {
+                    m.classList.remove('hidden');
+                    m.classList.add('flex');
                 } else {
-                    module.classList.add('hidden');
-                    module.classList.remove('flex');
+                    m.classList.add('hidden');
+                    m.classList.remove('flex');
                 }
             });
-            
             window.dispatchEvent(new Event('resize'));
         });
     });
 
-    const themeToggle = document.getElementById('theme-toggle');
-    const themeIconDark = document.getElementById('theme-icon-dark');
-    const themeIconLight = document.getElementById('theme-icon-light');
+    const toggle = document.getElementById('theme-toggle');
     const html = document.documentElement;
-
-    function updateThemeIcon() {
-        if (html.classList.contains('dark')) {
-            themeIconLight.classList.remove('hidden');
-            themeIconDark.classList.add('hidden');
-        } else {
-            themeIconLight.classList.add('hidden');
-            themeIconDark.classList.remove('hidden');
-        }
-    }
-
-    themeToggle.addEventListener('click', () => {
+    toggle.addEventListener('click', () => {
         html.classList.toggle('dark');
-        localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
-        updateThemeIcon();
+        const icon = toggle.querySelector('svg');
+        icon.setAttribute('data-lucide', html.classList.contains('dark') ? 'sun' : 'moon');
+        if (window.lucide) window.lucide.createIcons();
     });
 
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') {
-        html.classList.remove('dark');
-    } else if (savedTheme === 'dark') {
-        html.classList.add('dark');
-    }
-    updateThemeIcon();
+    if (window.lucide) window.lucide.createIcons();
 
-    initPixelArtEditor(
-        document.getElementById('pixel-editor-wrapper'),
-        document.getElementById('pixel-art-tools')
-    );
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT') return;
 
-    initCanvasDrawPro(document.getElementById('app-canvas-draw-pro'));
+        const key = e.key.toLowerCase();
+        const ctrl = e.ctrlKey || e.metaKey;
+
+        if (activeModule === 'canvas') {
+            canvasApp.handleShortcut(key, ctrl);
+        } else {
+            pixelApp.handleShortcut(key, ctrl);
+        }
+    });
 });
